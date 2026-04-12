@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { useSocket } from './hooks/useSocket';
 import {
   LaunchDaddyProvider,
   useLaunchDaddy,
@@ -19,24 +18,17 @@ import './App.css';
 type View = 'live' | 'stats' | 'shots' | 'camera' | 'debug';
 
 function AppContent() {
-  const { setClub } = useSocket();
   const { shots } = useShotContext();
 
   const [currentView, setCurrentView] = useState<View>('live');
-  const [selectedClub, setSelectedClub] = useState('driver');
   const { isLaunchDaddyMode, isExploding } = useLaunchDaddy();
-
-  const handleClubChange = (club: string) => {
-    setSelectedClub(club);
-    setClub(club);
-  };
 
   return (
     <div className={`app ${isLaunchDaddyMode ? 'app--launch-daddy' : ''} ${isExploding ? 'app--exploding' : ''}`}>
       <LaunchDaddyOverlay />
       <LaunchDaddySecretIndicator />
 
-      <Header selectedClub={selectedClub} onClubChange={handleClubChange} />
+      <Header />
 
       <Nav currentView={currentView} onViewChange={setCurrentView} shotCount={shots.length} />
 

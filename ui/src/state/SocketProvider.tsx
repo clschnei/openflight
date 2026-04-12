@@ -21,6 +21,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [mockMode, setMockMode] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const [selectedClub, setSelectedClub] = useState('driver');
   const [radarConfig, setRadarConfig] = useState<RadarConfig>({
     min_speed: 10,
     max_speed: 220,
@@ -90,6 +91,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setShotsRef.current(data.shots);
       if (data.mock_mode !== undefined) setMockMode(data.mock_mode);
       if (data.debug_mode !== undefined) setDebugMode(data.debug_mode);
+      if (data.club) setSelectedClub(data.club);
       if (data.camera_available !== undefined) {
         setCameraStatus((prev) => ({
           ...prev,
@@ -173,6 +175,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setClub = useCallback((club: string) => {
+    setSelectedClub(club);
     socketRef.current?.emit('set_club', { club });
   }, []);
 
@@ -207,6 +210,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     radarConfig,
     cameraStatus,
     triggerStatus,
+    selectedClub,
     clearSession,
     setClub,
     simulateShot,
@@ -222,6 +226,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     radarConfig,
     cameraStatus,
     triggerStatus,
+    selectedClub,
     clearSession,
     setClub,
     simulateShot,

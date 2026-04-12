@@ -7,15 +7,12 @@ import { ConnectionStatus } from '../ConnectionStatus';
 import { LaunchDaddyBrand } from '../LaunchDaddy';
 import Logo from '../../logo/Logo';
 
-interface HeaderProps {
-  selectedClub: string;
-  onClubChange: (club: string) => void;
-}
-
-export function Header({ selectedClub, onClubChange }: HeaderProps) {
+export function Header() {
   const {
     connected,
     cameraStatus,
+    selectedClub,
+    setClub,
     toggleCamera,
     shutdown,
   } = useSocket();
@@ -46,7 +43,7 @@ export function Header({ selectedClub, onClubChange }: HeaderProps) {
           {isLaunchDaddyMode ? <LaunchDaddyBrand /> : <Logo size="small" variant="light" />}
         </div>
         <div className="header__controls">
-          <ClubPicker selectedClub={selectedClub} onClubChange={handleClubChange} />
+          <ClubPicker selectedClub={selectedClub} onClubChange={setClub} />
           <BallDetectionIndicator
             available={cameraStatus.available}
             enabled={cameraStatus.enabled}
@@ -85,8 +82,4 @@ export function Header({ selectedClub, onClubChange }: HeaderProps) {
       )}
     </>
   );
-
-  function handleClubChange(club: string) {
-    onClubChange(club);
-  }
 }

@@ -3,7 +3,7 @@ import { StatsView } from '../StatsView';
 import { ShotList } from '../ShotList';
 import { CameraFeed } from '../CameraFeed';
 import { DebugPanel } from '../DebugPanel';
-import { useSocket, useDebug } from '../../hooks/useSocket';
+import { useSocket } from '../../hooks/useSocket';
 import { useShotContext } from '../../state/useShotContext';
 
 type View = 'live' | 'stats' | 'shots' | 'camera' | 'debug';
@@ -27,7 +27,6 @@ export function ViewManager({ currentView }: ViewManagerProps) {
     toggleCameraStream,
   } = useSocket();
 
-  const { debugReadings, debugShotLogs, triggerDiagnostics } = useDebug();
   const { latestShot, shots, isNewShot, shotVersion } = useShotContext();
 
   return (
@@ -51,14 +50,11 @@ export function ViewManager({ currentView }: ViewManagerProps) {
       {currentView === 'debug' && (
         <DebugPanel
           enabled={debugMode}
-          readings={debugReadings}
-          shotLogs={debugShotLogs}
           radarConfig={radarConfig}
           cameraStatus={cameraStatus}
           mockMode={mockMode}
           onToggle={toggleDebug}
           onUpdateConfig={updateRadarConfig}
-          triggerDiagnostics={triggerDiagnostics}
           triggerStatus={triggerStatus}
         />
       )}

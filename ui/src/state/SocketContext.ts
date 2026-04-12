@@ -49,6 +49,7 @@ export interface SocketContextValue {
   radarConfig: RadarConfig;
   cameraStatus: CameraStatus;
   triggerStatus: TriggerStatus;
+  selectedClub: string;
   clearSession: () => void;
   setClub: (club: string) => void;
   simulateShot: () => void;
