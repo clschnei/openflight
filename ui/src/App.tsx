@@ -7,7 +7,6 @@ import {
 } from './components/LaunchDaddy';
 import { ShotProvider } from './state/ShotProvider';
 import { SocketProvider } from './state/SocketProvider';
-import { useShotContext } from './state/useShotContext';
 
 import { Header } from './components/layout/Header';
 import { Nav } from './components/layout/Nav';
@@ -18,8 +17,6 @@ import './App.css';
 type View = 'live' | 'stats' | 'shots' | 'camera' | 'debug';
 
 function AppContent() {
-  const { shots } = useShotContext();
-
   const [currentView, setCurrentView] = useState<View>('live');
   const { isLaunchDaddyMode, isExploding } = useLaunchDaddy();
 
@@ -30,7 +27,7 @@ function AppContent() {
 
       <Header />
 
-      <Nav currentView={currentView} onViewChange={setCurrentView} shotCount={shots.length} />
+      <Nav currentView={currentView} onViewChange={setCurrentView} />
 
       <ViewManager currentView={currentView} />
     </div>

@@ -1,16 +1,17 @@
 import { Icons } from '../icons/NavigationIcons';
 import { useSocket } from '../../hooks/useSocket';
+import { useShotContext } from '../../state/useShotContext';
 
 type View = 'live' | 'stats' | 'shots' | 'camera' | 'debug';
 
 interface NavProps {
   currentView: View;
   onViewChange: (view: View) => void;
-  shotCount: number;
 }
 
-export function Nav({ currentView, onViewChange, shotCount }: NavProps) {
+export function Nav({ currentView, onViewChange }: NavProps) {
   const { debugMode, cameraStatus } = useSocket();
+  const { shots } = useShotContext();
 
   return (
     <nav className="nav">
@@ -34,7 +35,7 @@ export function Nav({ currentView, onViewChange, shotCount }: NavProps) {
       >
         {Icons.shots}
         <span>Shots</span>
-        {shotCount > 0 && <span className="nav__badge">{shotCount}</span>}
+        {shots.length > 0 && <span className="nav__badge">{shots.length}</span>}
       </button>
       <button
         className={`nav__button ${currentView === 'camera' ? 'nav__button--active' : ''} ${cameraStatus.streaming ? 'nav__button--streaming' : ''}`}
