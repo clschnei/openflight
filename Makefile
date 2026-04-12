@@ -16,8 +16,12 @@ format:
 	uv run ruff check --fix src/openflight/
 
 ## Start server in mock mode (no hardware needed)
-dev:
+mock-kiosk:
 	scripts/start-kiosk.sh --mock
+
+## Start development environment (HMR + Mock)
+dev:
+	scripts/dev.sh
 
 ## Build the React UI
 build-ui:

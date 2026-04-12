@@ -64,7 +64,9 @@ scripts/start-kiosk.sh
 scripts/start-kiosk.sh --kld7 --kld7-angle-offset 13
 
 # Development mode (no hardware)
-scripts/start-kiosk.sh --mock
+scripts/dev.sh
+# or
+make dev
 ```
 
 Then open http://localhost:8080 or use the touchscreen.
