@@ -119,8 +119,7 @@ interface ShotDisplayProps {
 }
 
 export function ShotDisplay({ animate = false }: ShotDisplayProps) {
-  const { latestShot } = useShotContext();
-  const shot = latestShot;
+  const { latestShot: shot } = useShotContext();
 
   const carryRange = useMemo(() => {
     if (!shot) return null;
@@ -218,14 +217,15 @@ export function ShotDisplay({ animate = false }: ShotDisplayProps) {
               label="H. Launch"
               subtext={shot.angle_source ?? undefined}
               variant="secondary"
+              confidence={getLaunchAngleQuality(shot.launch_angle_confidence)}
             />
           )}
           <MetricCard
             value={hasSpin ? formatSpinRpm(shot.spin_rpm!) : '—'}
             unit={hasSpin ? 'rpm' : undefined}
             label="Spin Rate"
-            subtext={hasSpin ? 'measured' : 'estimated'}
-            variant={hasSpin ? 'spin' : 'secondary'}
+            variant="spin"
+            confidence={hasSpin ? shot.spin_quality : null}
           />
         </div>
       </div>
