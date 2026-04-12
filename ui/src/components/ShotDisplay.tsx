@@ -2,7 +2,113 @@ import { useMemo } from 'react';
 import { useShotContext } from '../state/useShotContext';
 import './ShotDisplay.css';
 
-function getConfidenceClass(confidence: number): 'low' | 'medium' | 'high' {
+// Speed gauge configuration
+const GAUGE_MIN = 0;
+const GAUGE_MAX = 200; // mph
+const GAUGE_START_ANGLE = -140;
+const GAUGE_END_ANGLE = 140;
+
+function SpeedGauge({ speed, label }: { speed: number; label: string }) {
+  const percentage = Math.min(Math.max((speed - GAUGE_MIN) / (GAUGE_MAX - GAUGE_MIN), 0), 1);
+  const angle = GAUGE_START_ANGLE + (GAUGE_END_ANGLE - GAUGE_START_ANGLE) * percentage;
+
+  // SVG arc path calculation
+  const radius = 85;
+  const cx = 100;
+  const cy = 100;
+
+  const polarToCartesian = (centerX: number, centerY: number, r: number, angleInDegrees: number) => {
+    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+    return {
+      x: centerX + r * Math.cos(angleInRadians),
+      y: centerY + r * Math.sin(angleInRadians),
+    };
+  };
+
+  const describeArc = (startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(cx, cy, radius, endAngle);
+    const end = polarToCartesian(cx, cy, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+  };
+
+  const backgroundArc = describeArc(GAUGE_START_ANGLE, GAUGE_END_ANGLE);
+  const valueArc = describeArc(GAUGE_START_ANGLE, angle);
+
+  return (
+    <div className="speed-gauge">
+      <svg viewBox="0 0 200 140" className="speed-gauge__svg">
+        {/* Background arc */}
+        <path d={backgroundArc} fill="none" stroke="rgba(245, 240, 230, 0.1)" strokeWidth="12" strokeLinecap="round" />
+        {/* Value arc */}
+        <path
+          d={valueArc}
+          fill="none"
+          stroke="url(#goldGradient)"
+          strokeWidth="12"
+          strokeLinecap="round"
+          className="speed-gauge__value-arc"
+        />
+        {/* Gradient definition */}
+        <defs>
+          <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#A68B2A" />
+            <stop offset="100%" stopColor="#F4CF47" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="speed-gauge__content">
+        <span className="speed-gauge__value">{speed.toFixed(1)}</span>
+        <span className="speed-gauge__unit">mph</span>
+        <span className="speed-gauge__label">{label}</span>
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({
+  value,
+  unit,
+  label,
+  subtext,
+  variant = 'default',
+  confidence,
+}: {
+  value: string | number;
+  unit?: string;
+  label: string;
+  subtext?: string;
+  variant?: 'default' | 'primary' | 'secondary' | 'spin';
+  confidence?: 'high' | 'medium' | 'low' | null;
+}) {
+  return (
+    <div className={`metric-card metric-card--${variant}`}>
+      <div className="metric-card__value-row">
+        <span className="metric-card__value">{value}</span>
+        {unit && <span className="metric-card__unit">{unit}</span>}
+      </div>
+      <span className="metric-card__label">{label}</span>
+      {subtext && <span className="metric-card__subtext">{subtext}</span>}
+      {confidence && (
+        <div className={`metric-card__confidence metric-card__confidence--${confidence}`}>
+          <span className="metric-card__confidence-dots">
+            <span className="dot filled" />
+            <span className={`dot ${confidence === 'medium' || confidence === 'high' ? 'filled' : ''}`} />
+            <span className={`dot ${confidence === 'high' ? 'filled' : ''}`} />
+          </span>
+          <span className="metric-card__confidence-label">{confidence}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatSpinRpm(rpm: number): string {
+  return rpm.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
+function getLaunchAngleQuality(confidence: number | null): 'high' | 'medium' | 'low' | null {
+  if (confidence === null) return null;
   if (confidence >= 0.7) return 'high';
   if (confidence >= 0.4) return 'medium';
   return 'low';
@@ -12,7 +118,7 @@ interface ShotDisplayProps {
   animate?: boolean;
 }
 
-export function ShotDisplay({ animate }: ShotDisplayProps) {
+export function ShotDisplay({ animate = false }: ShotDisplayProps) {
   const { latestShot } = useShotContext();
   const shot = latestShot;
 
@@ -21,61 +127,106 @@ export function ShotDisplay({ animate }: ShotDisplayProps) {
     return `${shot.carry_range[0]}–${shot.carry_range[1]} yds`;
   }, [shot]);
 
+  const displayCarry = shot?.carry_spin_adjusted ?? shot?.estimated_carry_yards ?? 0;
+  const carrySubtext = shot?.carry_spin_adjusted ? 'spin-adjusted' : carryRange || undefined;
+
   if (!shot) {
     return (
       <div className="shot-display shot-display--empty">
-        <p>Awaiting shot...</p>
+        <div className="shot-display__waiting">
+          <div className="golf-ball-indicator">
+            <div className="golf-ball-indicator__ball">
+              <div className="golf-ball-indicator__dimple" />
+              <div className="golf-ball-indicator__dimple" />
+              <div className="golf-ball-indicator__dimple" />
+            </div>
+            <div className="golf-ball-indicator__shadow" />
+          </div>
+          <p className="shot-display__waiting-text">Ready for your shot</p>
+          <p className="shot-display__waiting-hint">Position ball in front of radar</p>
+        </div>
       </div>
     );
   }
 
+  const hasSpin = shot.spin_rpm !== null;
+  const hasLaunchAngle = shot.launch_angle_vertical !== null;
+
   return (
     <div className={`shot-display ${animate ? 'shot-display--animate' : ''}`}>
-      <div className="shot-display__main">
-        <div className="shot-display__value shot-display__value--large">
-          <span className="value">{shot.ball_speed_mph.toFixed(1)}</span>
-          <span className="unit">MPH</span>
-          <span className="label">Ball Speed</span>
+      <div className="shot-display__layout">
+        {/* Left: Ball Speed Gauge */}
+        <div className="shot-display__primary">
+          <SpeedGauge speed={shot.ball_speed_mph} label="Ball Speed" />
         </div>
-        <div className="shot-display__value shot-display__value--large">
-          <span className="value">{shot.estimated_carry_yards}</span>
-          <span className="unit">YDS</span>
-          <span className="label">Carry (Est)</span>
-          {carryRange && <span className="shot-display__range">{carryRange}</span>}
-        </div>
-      </div>
 
-      <div className="shot-display__secondary">
-        <div className="shot-display__value">
-          <span className="value">{shot.club_speed_mph ? shot.club_speed_mph.toFixed(1) : '--'}</span>
-          <span className="unit">MPH</span>
-          <span className="label">Club Speed</span>
-        </div>
-        <div className="shot-display__value">
-          <span className="value">{shot.smash_factor ? shot.smash_factor.toFixed(2) : '--'}</span>
-          <span className="unit">SF</span>
-          <span className="label">Smash Factor</span>
-        </div>
-        <div className="shot-display__value">
-          <span className="value">
-            {shot.launch_angle_vertical !== null ? `${shot.launch_angle_vertical.toFixed(1)}°` : '--'}
-          </span>
-          {shot.launch_angle_confidence !== null && (
-            <span
-              className={`shot-display__confidence shot-display__confidence--${getConfidenceClass(
-                shot.launch_angle_confidence
-              )}`}
-              title={`Confidence: ${(shot.launch_angle_confidence * 100).toFixed(0)}%`}
+        {/* Right: Secondary Metrics */}
+        <div className="shot-display__metrics">
+          <MetricCard
+            value={Math.round(displayCarry)}
+            unit="yds"
+            label="Est. Carry"
+            subtext={carrySubtext}
+            variant="primary"
+          />
+          <MetricCard
+            value={shot.club_speed_mph ? shot.club_speed_mph.toFixed(1) : '—'}
+            unit={shot.club_speed_mph ? 'mph' : undefined}
+            label="Club Speed"
+            subtext={shot.smash_factor ? `${shot.smash_factor.toFixed(2)} smash` : undefined}
+            variant="secondary"
+          />
+          <MetricCard
+            value={hasLaunchAngle ? shot.launch_angle_vertical!.toFixed(1) : '—'}
+            unit={hasLaunchAngle ? '°' : undefined}
+            label="V. Launch"
+            subtext={hasLaunchAngle ? (shot.angle_source ?? undefined) : undefined}
+            variant="secondary"
+            confidence={hasLaunchAngle ? getLaunchAngleQuality(shot.launch_angle_confidence) : null}
+          />
+          {shot.club_angle_deg !== null && (
+            <MetricCard
+              value={shot.club_angle_deg.toFixed(1)}
+              unit="°"
+              label="Club AoA"
+              subtext="radar"
+              variant="secondary"
             />
           )}
-          <span className="label">Launch Angle</span>
-        </div>
-        <div className="shot-display__value">
-          <span className="value">
-            {shot.spin_rpm !== null ? shot.spin_rpm.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '--'}
-          </span>
-          <span className="unit">RPM</span>
-          <span className="label">Spin Rate</span>
+          {shot.club_path_deg !== null && (
+            <MetricCard
+              value={(shot.club_path_deg >= 0 ? '+' : '') + shot.club_path_deg.toFixed(1)}
+              unit="°"
+              label="Club Path"
+              subtext="radar"
+              variant="secondary"
+            />
+          )}
+          {shot.spin_axis_deg !== null && (
+            <MetricCard
+              value={(shot.spin_axis_deg >= 0 ? '+' : '') + shot.spin_axis_deg.toFixed(1)}
+              unit="°"
+              label="Spin Axis"
+              subtext={shot.spin_axis_deg > 2 ? 'fade' : shot.spin_axis_deg < -2 ? 'draw' : 'straight'}
+              variant="secondary"
+            />
+          )}
+          {shot.launch_angle_horizontal !== null && (
+            <MetricCard
+              value={(shot.launch_angle_horizontal >= 0 ? '+' : '') + shot.launch_angle_horizontal.toFixed(1)}
+              unit="°"
+              label="H. Launch"
+              subtext={shot.angle_source ?? undefined}
+              variant="secondary"
+            />
+          )}
+          <MetricCard
+            value={hasSpin ? formatSpinRpm(shot.spin_rpm!) : '—'}
+            unit={hasSpin ? 'rpm' : undefined}
+            label="Spin Rate"
+            subtext={hasSpin ? 'measured' : 'estimated'}
+            variant={hasSpin ? 'spin' : 'secondary'}
+          />
         </div>
       </div>
     </div>
