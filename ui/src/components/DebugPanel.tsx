@@ -1,17 +1,7 @@
 import { memo, useState } from 'react';
-import { useDebug, type RadarConfig, type CameraStatus } from '../hooks/useSocket';
+import { useSocket, useDebug } from '../hooks/useSocket';
 import type { TriggerDiagnostic, TriggerStatus } from '../types/shot';
 import './DebugPanel.css';
-
-interface DebugPanelProps {
-  enabled: boolean;
-  radarConfig: RadarConfig;
-  cameraStatus: CameraStatus;
-  mockMode: boolean;
-  onToggle: () => void;
-  onUpdateConfig: (config: Partial<RadarConfig>) => void;
-  triggerStatus: TriggerStatus;
-}
 
 const REASON_DISPLAY: Record<string, string> = {
   accepted: 'Shot detected',
@@ -281,13 +271,9 @@ function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
 
 type DebugTab = 'status' | 'history' | 'tuning';
 
-export function DebugPanel({
-  radarConfig,
-  mockMode,
-  onUpdateConfig,
-  triggerStatus,
-}: DebugPanelProps) {
+export function DebugPanel() {
   const [activeTab, setActiveTab] = useState<DebugTab>('status');
+  const { radarConfig, triggerStatus, mockMode, updateRadarConfig } = useSocket();
   const { triggerDiagnostics } = useDebug();
   
   const isRollingBuffer = triggerStatus.mode === 'rolling-buffer';
@@ -365,7 +351,7 @@ export function DebugPanel({
                 max={50}
                 unit=" mph"
                 disabled={mockMode}
-                onChange={(v) => onUpdateConfig({ min_speed: v })}
+                onChange={(v) => updateRadarConfig({ min_speed: v })}
               />
               <SliderControl
                 label="Min Magnitude"
@@ -374,7 +360,7 @@ export function DebugPanel({
                 max={2000}
                 step={50}
                 disabled={mockMode}
-                onChange={(v) => onUpdateConfig({ min_magnitude: v })}
+                onChange={(v) => updateRadarConfig({ min_magnitude: v })}
               />
               <SliderControl
                 label="TX Power"
@@ -382,7 +368,7 @@ export function DebugPanel({
                 min={0}
                 max={7}
                 disabled={mockMode}
-                onChange={(v) => onUpdateConfig({ transmit_power: v })}
+                onChange={(v) => updateRadarConfig({ transmit_power: v })}
               />
             </div>
             <p className="debug-panel__hint">TX Power: 0 = max range, 7 = min range</p>

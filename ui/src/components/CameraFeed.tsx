@@ -1,37 +1,19 @@
-import { useState } from 'react';
-import type { CameraStatus } from '../hooks/useSocket';
+import { useSocket } from '../hooks/useSocket';
 import './CameraFeed.css';
 
-interface CameraFeedProps {
-  cameraStatus: CameraStatus;
-  onToggleCamera: () => void;
-  onToggleStream: () => void;
-}
+export function CameraFeed() {
+  const { cameraStatus, toggleCamera, toggleCameraStream } = useSocket();
 
-const STREAM_URL = import.meta.env.VITE_SOCKET_URL
-  ? `${import.meta.env.VITE_SOCKET_URL}/camera/stream`
-  : 'http://localhost:8080/camera/stream';
-
-export function CameraFeed({ cameraStatus, onToggleCamera, onToggleStream }: CameraFeedProps) {
-  const [streamError, setStreamError] = useState(false);
-  const [prevStreaming, setPrevStreaming] = useState(false);
-  const { available, enabled, streaming, ball_detected, ball_confidence } = cameraStatus;
-
-  // Reset error when streaming starts
-  if (streaming && !prevStreaming) {
-    setStreamError(false);
-  }
-  if (streaming !== prevStreaming) {
-    setPrevStreaming(streaming);
-  }
-
-  if (!available) {
+  if (!cameraStatus.available) {
     return (
       <div className="camera-feed camera-feed--unavailable">
-        <div className="camera-feed__message">
-          <span className="camera-feed__icon">📷</span>
-          <h3>Camera Not Available</h3>
-          <p>Start the server with --camera flag to enable camera support</p>
+        <div className="camera-feed__status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="48" height="48">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+            <line x1="1" y1="1" x2="23" y2="23" />
+          </svg>
+          <h3>Camera Unavailable</h3>
+          <p>Launch angle detection is disabled</p>
         </div>
       </div>
     );
@@ -40,65 +22,68 @@ export function CameraFeed({ cameraStatus, onToggleCamera, onToggleStream }: Cam
   return (
     <div className="camera-feed">
       <div className="camera-feed__header">
-        <h2 className="camera-feed__title">Camera Feed</h2>
+        <div className="camera-feed__title">
+          <h3>Launch Angle Camera</h3>
+          <span className={`status-pill ${cameraStatus.enabled ? 'status-pill--active' : 'status-pill--inactive'}`}>
+            {cameraStatus.enabled ? 'Enabled' : 'Disabled'}
+          </span>
+        </div>
         <div className="camera-feed__controls">
-          <button
-            className={`camera-feed__button ${enabled ? 'camera-feed__button--active' : ''}`}
-            onClick={onToggleCamera}
+          <button 
+            className={`btn ${cameraStatus.enabled ? 'btn--danger' : 'btn--primary'}`}
+            onClick={toggleCamera}
           >
-            {enabled ? 'Disable Camera' : 'Enable Camera'}
+            {cameraStatus.enabled ? 'Disable' : 'Enable'}
           </button>
-          {enabled && (
-            <button
-              className={`camera-feed__button ${streaming ? 'camera-feed__button--streaming' : ''}`}
-              onClick={onToggleStream}
-            >
-              {streaming ? 'Stop Stream' : 'Start Stream'}
-            </button>
-          )}
+          <button 
+            className="btn btn--secondary"
+            onClick={toggleCameraStream}
+            disabled={!cameraStatus.enabled}
+          >
+            {cameraStatus.streaming ? 'Stop Stream' : 'Start Stream'}
+          </button>
         </div>
       </div>
 
       <div className="camera-feed__content">
-        {!enabled ? (
-          <div className="camera-feed__message">
-            <span className="camera-feed__icon">📷</span>
-            <h3>Camera Disabled</h3>
-            <p>Click "Enable Camera" to start ball detection</p>
-          </div>
-        ) : !streaming ? (
-          <div className="camera-feed__message">
-            <span className="camera-feed__icon">🎥</span>
-            <h3>Stream Paused</h3>
-            <p>Ball detection is active. Click "Start Stream" to view live feed.</p>
-            <div className={`camera-feed__detection ${ball_detected ? 'camera-feed__detection--detected' : ''}`}>
-              {ball_detected ? `Ball Detected (${Math.round(ball_confidence * 100)}%)` : 'No Ball Detected'}
-            </div>
-          </div>
-        ) : streamError ? (
-          <div className="camera-feed__message camera-feed__message--error">
-            <span className="camera-feed__icon">⚠️</span>
-            <h3>Stream Error</h3>
-            <p>Could not load camera stream</p>
-            <button className="camera-feed__button" onClick={() => setStreamError(false)}>
-              Retry
-            </button>
+        {cameraStatus.enabled && cameraStatus.streaming ? (
+          <div className="camera-feed__stream">
+            <img 
+              src="/api/camera/stream" 
+              alt="Camera Stream" 
+              key={cameraStatus.streaming ? 'streaming' : 'stopped'}
+            />
+            {cameraStatus.ball_detected && (
+              <div className="camera-feed__overlay">
+                <div className="ball-marker" />
+                <span className="ball-confidence">
+                  Ball: {(cameraStatus.ball_confidence * 100).toFixed(0)}%
+                </span>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="camera-feed__stream">
-            <img
-              src={STREAM_URL}
-              alt="Camera Feed"
-              className="camera-feed__video"
-              onError={() => setStreamError(true)}
-            />
-            <div className="camera-feed__overlay">
-              <div className={`camera-feed__status ${ball_detected ? 'camera-feed__status--detected' : ''}`}>
-                {ball_detected ? `Ball: ${Math.round(ball_confidence * 100)}%` : 'Searching...'}
-              </div>
-            </div>
+          <div className="camera-feed__placeholder">
+            {!cameraStatus.enabled ? (
+              <p>Enable camera to see launch angle data</p>
+            ) : (
+              <p>Stream disabled. Click 'Start Stream' to see live feed.</p>
+            )}
           </div>
         )}
+      </div>
+
+      <div className="camera-feed__info">
+        <div className="info-item">
+          <span className="info-label">Detection</span>
+          <span className={`info-value ${cameraStatus.ball_detected ? 'info-value--success' : ''}`}>
+            {cameraStatus.ball_detected ? 'Ball Detected' : 'No Ball'}
+          </span>
+        </div>
+        <div className="info-item">
+          <span className="info-label">Confidence</span>
+          <span className="info-value">{(cameraStatus.ball_confidence * 100).toFixed(0)}%</span>
+        </div>
       </div>
     </div>
   );

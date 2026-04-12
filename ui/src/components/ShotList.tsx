@@ -1,12 +1,9 @@
 import { useState, useMemo, memo } from 'react';
+import { useShotContext } from '../state/useShotContext';
 import type { Shot } from '../types/shot';
 import './ShotList.css';
 
 const SHOTS_PER_PAGE = 5;
-
-interface ShotListProps {
-  shots: Shot[];
-}
 
 interface ShotRowProps {
   shot: Shot;
@@ -42,7 +39,8 @@ const ShotRow = memo(function ShotRow({ shot, shotNumber }: ShotRowProps) {
   );
 });
 
-export function ShotList({ shots }: ShotListProps) {
+export function ShotList() {
+  const { shots } = useShotContext();
   const [page, setPage] = useState(0);
 
   const totalPages = Math.ceil(shots.length / SHOTS_PER_PAGE);

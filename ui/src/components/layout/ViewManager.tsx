@@ -3,8 +3,8 @@ import { StatsView } from '../StatsView';
 import { ShotList } from '../ShotList';
 import { CameraFeed } from '../CameraFeed';
 import { DebugPanel } from '../DebugPanel';
-import { useSocket } from '../../hooks/useSocket';
 import { useShotContext } from '../../state/useShotContext';
+import { useSocket } from '../../hooks/useSocket';
 
 type View = 'live' | 'stats' | 'shots' | 'camera' | 'debug';
 
@@ -13,28 +13,15 @@ interface ViewManagerProps {
 }
 
 export function ViewManager({ currentView }: ViewManagerProps) {
-  const {
-    mockMode,
-    debugMode,
-    radarConfig,
-    cameraStatus,
-    triggerStatus,
-    clearSession,
-    simulateShot,
-    toggleDebug,
-    updateRadarConfig,
-    toggleCamera,
-    toggleCameraStream,
-  } = useSocket();
-
-  const { latestShot, shots, isNewShot, shotVersion } = useShotContext();
+  const { isNewShot, shotVersion } = useShotContext();
+  const { mockMode, simulateShot } = useSocket();
 
   return (
     <main className="main">
       {currentView === 'live' && (
         <div className="live-view">
           {isNewShot && <div key={shotVersion} className="shot-flash" />}
-          <ShotDisplay key={shotVersion} shot={latestShot} animate={isNewShot} />
+          <ShotDisplay animate={isNewShot} />
           {mockMode && (
             <button className="simulate-button" onClick={simulateShot}>
               Simulate Shot
@@ -42,22 +29,10 @@ export function ViewManager({ currentView }: ViewManagerProps) {
           )}
         </div>
       )}
-      {currentView === 'stats' && <StatsView shots={shots} onClearSession={clearSession} />}
-      {currentView === 'shots' && <ShotList shots={shots} />}
-      {currentView === 'camera' && (
-        <CameraFeed cameraStatus={cameraStatus} onToggleCamera={toggleCamera} onToggleStream={toggleCameraStream} />
-      )}
-      {currentView === 'debug' && (
-        <DebugPanel
-          enabled={debugMode}
-          radarConfig={radarConfig}
-          cameraStatus={cameraStatus}
-          mockMode={mockMode}
-          onToggle={toggleDebug}
-          onUpdateConfig={updateRadarConfig}
-          triggerStatus={triggerStatus}
-        />
-      )}
+      {currentView === 'stats' && <StatsView />}
+      {currentView === 'shots' && <ShotList />}
+      {currentView === 'camera' && <CameraFeed />}
+      {currentView === 'debug' && <DebugPanel />}
     </main>
   );
 }

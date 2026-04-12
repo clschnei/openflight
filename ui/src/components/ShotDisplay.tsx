@@ -1,11 +1,6 @@
 import { useMemo } from 'react';
-import type { Shot } from '../types/shot';
+import { useShotContext } from '../state/useShotContext';
 import './ShotDisplay.css';
-
-interface ShotDisplayProps {
-  shot: Shot | null;
-  animate?: boolean;
-}
 
 function getConfidenceClass(confidence: number): 'low' | 'medium' | 'high' {
   if (confidence >= 0.7) return 'high';
@@ -13,7 +8,14 @@ function getConfidenceClass(confidence: number): 'low' | 'medium' | 'high' {
   return 'low';
 }
 
-export function ShotDisplay({ shot, animate }: ShotDisplayProps) {
+interface ShotDisplayProps {
+  animate?: boolean;
+}
+
+export function ShotDisplay({ animate }: ShotDisplayProps) {
+  const { latestShot } = useShotContext();
+  const shot = latestShot;
+
   const carryRange = useMemo(() => {
     if (!shot) return null;
     return `${shot.carry_range[0]}–${shot.carry_range[1]} yds`;

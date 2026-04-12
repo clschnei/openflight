@@ -1,14 +1,12 @@
 import { useState, useMemo } from 'react';
-import type { Shot } from '../types/shot';
+import { useShotContext } from '../state/useShotContext';
+import { useSocket } from '../hooks/useSocket';
 import { computeStats, getUniqueClubs } from '../types/shot';
 import './StatsView.css';
 
-interface StatsViewProps {
-  shots: Shot[];
-  onClearSession: () => void;
-}
-
-export function StatsView({ shots, onClearSession }: StatsViewProps) {
+export function StatsView() {
+  const { shots } = useShotContext();
+  const { clearSession } = useSocket();
   const [selectedClub, setSelectedClub] = useState<string | null>(null);
 
   const availableClubs = useMemo(() => getUniqueClubs(shots), [shots]);
@@ -90,7 +88,7 @@ export function StatsView({ shots, onClearSession }: StatsViewProps) {
       </div>
 
       {/* Clear Button */}
-      <button className="clear-button" onClick={onClearSession}>
+      <button className="clear-button" onClick={clearSession}>
         Clear Session
       </button>
     </div>
