@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useLaunchDaddy } from './useLaunchDaddy';
 
 interface Particle {
@@ -29,60 +29,14 @@ function generateParticles(count: number): Particle[] {
   });
 }
 
-function randomFrom<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-const LAUNCH_PHRASES = [
-  'STRATOSPHERE',
-  'ORBIT ACHIEVED',
-  'TO THE MOON',
-  'NUCLEAR LAUNCH',
-  'ABSOLUTE BOMB',
-  'INTO ORBIT',
-  'LAUNCHED',
-  'OBLITERATED',
-  'VAPORIZED',
-] as const;
-
-const SUBTITLES = [
-  'THE LONGEST HITTER IN THE WORLD',
-  'THAT BALL HAD A FAMILY',
-  'CALL THE AUTHORITIES',
-  'WEAPONS GRADE DISTANCE',
-  'SPONSORED BY NASA',
-  'REGISTERED AS A WEAPON',
-  'BROKE THE SOUND BARRIER',
-] as const;
-
-interface ExplosionData {
-  particles: Particle[];
+interface ExplosionContentProps {
   phrase: string;
   subtitle: string;
 }
 
-function generateExplosionData(): ExplosionData {
-  return {
-    particles: generateParticles(50),
-    phrase: randomFrom(LAUNCH_PHRASES),
-    subtitle: randomFrom(SUBTITLES),
-  };
-}
-
-export function LaunchDaddyOverlay() {
-  const { isExploding, isLaunchDaddyMode } = useLaunchDaddy();
-  const [explosionData, setExplosionData] = useState<ExplosionData>(generateExplosionData);
-  const [wasExploding, setWasExploding] = useState(false);
-
-  // Regenerate random data when explosion starts
-  if (isExploding && !wasExploding) {
-    setExplosionData(generateExplosionData());
-  }
-  if (isExploding !== wasExploding) {
-    setWasExploding(isExploding);
-  }
-
-  if (!isLaunchDaddyMode || !isExploding) return null;
+function ExplosionContent({ phrase, subtitle }: ExplosionContentProps) {
+  // Memoize particles for this specific mount
+  const particles = useMemo(() => generateParticles(50), []);
 
   return (
     <>
@@ -98,7 +52,7 @@ export function LaunchDaddyOverlay() {
 
         {/* Particle system */}
         <div className="launch-daddy-explosion__particles">
-          {explosionData.particles.map((particle) => (
+          {particles.map((particle) => (
             <div
               key={particle.id}
               className={`launch-daddy-particle launch-daddy-particle--${particle.type}`}
@@ -120,9 +74,23 @@ export function LaunchDaddyOverlay() {
       {/* Stratosphere launch */}
       <div className="launch-daddy-stratosphere">
         <div className="launch-daddy-stratosphere__ball" />
-        <div className="launch-daddy-stratosphere__text">{explosionData.phrase}</div>
-        <div className="launch-daddy-stratosphere__subtitle">{explosionData.subtitle}</div>
+        <div className="launch-daddy-stratosphere__text">{phrase}</div>
+        <div className="launch-daddy-stratosphere__subtitle">{subtitle}</div>
       </div>
     </>
+  );
+}
+
+export function LaunchDaddyOverlay() {
+  const { isExploding, isLaunchDaddyMode, explosionId, explosionData } = useLaunchDaddy();
+
+  if (!isLaunchDaddyMode || !isExploding || !explosionData) return null;
+
+  return (
+    <ExplosionContent 
+      key={explosionId}
+      phrase={explosionData.phrase}
+      subtitle={explosionData.subtitle}
+    />
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useSocket } from './hooks/useSocket';
 import {
   LaunchDaddyProvider,
@@ -20,19 +20,11 @@ type View = 'live' | 'stats' | 'shots' | 'camera' | 'debug';
 
 function AppContent() {
   const { setClub } = useSocket();
-  const { shots, isNewShot, shotVersion } = useShotContext();
+  const { shots } = useShotContext();
 
   const [currentView, setCurrentView] = useState<View>('live');
   const [selectedClub, setSelectedClub] = useState('driver');
-  const { isLaunchDaddyMode, isExploding, triggerExplosion } = useLaunchDaddy();
-
-  // Trigger explosion when a new shot is detected in Launch Daddy mode
-  useEffect(() => {
-    if (isNewShot && isLaunchDaddyMode) {
-      triggerExplosion();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- shotVersion triggers the effect; isNewShot is only a guard
-  }, [shotVersion, isLaunchDaddyMode, triggerExplosion]);
+  const { isLaunchDaddyMode, isExploding } = useLaunchDaddy();
 
   const handleClubChange = (club: string) => {
     setSelectedClub(club);
@@ -53,14 +45,28 @@ function AppContent() {
   );
 }
 
+function AppWithProviders() {
+  const { isLaunchDaddyMode, triggerExplosion } = useLaunchDaddy();
+
+  const handleNewShot = useCallback(() => {
+    if (isLaunchDaddyMode) {
+      triggerExplosion();
+    }
+  }, [isLaunchDaddyMode, triggerExplosion]);
+
+  return (
+    <ShotProvider onNewShot={handleNewShot}>
+      <SocketProvider>
+        <AppContent />
+      </SocketProvider>
+    </ShotProvider>
+  );
+}
+
 function App() {
   return (
     <LaunchDaddyProvider>
-      <ShotProvider>
-        <SocketProvider>
-          <AppContent />
-        </SocketProvider>
-      </ShotProvider>
+      <AppWithProviders />
     </LaunchDaddyProvider>
   );
 }

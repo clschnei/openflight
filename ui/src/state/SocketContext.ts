@@ -46,11 +46,8 @@ export interface SocketContextValue {
   connected: boolean;
   mockMode: boolean;
   debugMode: boolean;
-  debugReadings: DebugReading[];
-  debugShotLogs: DebugShotLog[];
   radarConfig: RadarConfig;
   cameraStatus: CameraStatus;
-  triggerDiagnostics: TriggerDiagnostic[];
   triggerStatus: TriggerStatus;
   clearSession: () => void;
   setClub: (club: string) => void;
@@ -62,4 +59,11 @@ export interface SocketContextValue {
   shutdown: () => void;
 }
 
+export interface DebugContextValue {
+  debugReadings: DebugReading[];
+  debugShotLogs: DebugShotLog[];
+  triggerDiagnostics: TriggerDiagnostic[];
+}
+
 export const SocketContext = createContext<SocketContextValue | undefined>(undefined);
+export const DebugContext = createContext<DebugContextValue | undefined>(undefined);

@@ -1,8 +1,15 @@
-import { useEffect, useState, useCallback, useRef, ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, ReactNode, useMemo } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import type { Shot, SessionStats, SessionState, TriggerDiagnostic, TriggerStatus } from '../types/shot';
 import { useShotContext } from './useShotContext';
-import { SocketContext, type DebugReading, type DebugShotLog, type RadarConfig, type CameraStatus } from './SocketContext';
+import {
+  SocketContext,
+  DebugContext,
+  type DebugReading,
+  type DebugShotLog,
+  type RadarConfig,
+  type CameraStatus,
+} from './SocketContext';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
 
@@ -10,22 +17,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
   const { addShot, setShots, clearShots } = useShotContext();
 
-  // Keep stable refs so socket event handlers always see the latest callbacks
-  const addShotRef = useRef(addShot);
-  const setShotsRef = useRef(setShots);
-  const clearShotsRef = useRef(clearShots);
-
-  useEffect(() => {
-    addShotRef.current = addShot;
-    setShotsRef.current = setShots;
-    clearShotsRef.current = clearShots;
-  }, [addShot, setShots, clearShots]);
-
+  // Low-frequency / UI state
   const [connected, setConnected] = useState(false);
   const [mockMode, setMockMode] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
-  const [debugReadings, setDebugReadings] = useState<DebugReading[]>([]);
-  const [debugShotLogs, setDebugShotLogs] = useState<DebugShotLog[]>([]);
   const [radarConfig, setRadarConfig] = useState<RadarConfig>({
     min_speed: 10,
     max_speed: 220,
@@ -39,7 +34,6 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     ball_detected: false,
     ball_confidence: 0,
   });
-  const [triggerDiagnostics, setTriggerDiagnostics] = useState<TriggerDiagnostic[]>([]);
   const [triggerStatus, setTriggerStatus] = useState<TriggerStatus>({
     mode: 'rolling-buffer',
     trigger_type: null,
@@ -49,6 +43,22 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     triggers_accepted: 0,
     triggers_rejected: 0,
   });
+
+  // High-frequency / Debug state
+  const [debugReadings, setDebugReadings] = useState<DebugReading[]>([]);
+  const [debugShotLogs, setDebugShotLogs] = useState<DebugShotLog[]>([]);
+  const [triggerDiagnostics, setTriggerDiagnostics] = useState<TriggerDiagnostic[]>([]);
+
+  // Stable refs for event handlers
+  const addShotRef = useRef(addShot);
+  const setShotsRef = useRef(setShots);
+  const clearShotsRef = useRef(clearShots);
+
+  useEffect(() => {
+    addShotRef.current = addShot;
+    setShotsRef.current = setShots;
+    clearShotsRef.current = clearShots;
+  }, [addShot, setShots, clearShots]);
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL, {
@@ -190,29 +200,49 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     fetch('/api/shutdown', { method: 'POST' }).catch(() => {});
   }, []);
 
+  const socketContextValue = useMemo(() => ({
+    connected,
+    mockMode,
+    debugMode,
+    radarConfig,
+    cameraStatus,
+    triggerStatus,
+    clearSession,
+    setClub,
+    simulateShot,
+    toggleDebug,
+    updateRadarConfig,
+    toggleCamera,
+    toggleCameraStream,
+    shutdown,
+  }), [
+    connected,
+    mockMode,
+    debugMode,
+    radarConfig,
+    cameraStatus,
+    triggerStatus,
+    clearSession,
+    setClub,
+    simulateShot,
+    toggleDebug,
+    updateRadarConfig,
+    toggleCamera,
+    toggleCameraStream,
+    shutdown
+  ]);
+
+  const debugContextValue = useMemo(() => ({
+    debugReadings,
+    debugShotLogs,
+    triggerDiagnostics,
+  }), [debugReadings, debugShotLogs, triggerDiagnostics]);
+
   return (
-    <SocketContext.Provider
-      value={{
-        connected,
-        mockMode,
-        debugMode,
-        debugReadings,
-        debugShotLogs,
-        radarConfig,
-        cameraStatus,
-        triggerDiagnostics,
-        triggerStatus,
-        clearSession,
-        setClub,
-        simulateShot,
-        toggleDebug,
-        updateRadarConfig,
-        toggleCamera,
-        toggleCameraStream,
-        shutdown,
-      }}
-    >
-      {children}
+    <SocketContext.Provider value={socketContextValue}>
+      <DebugContext.Provider value={debugContextValue}>
+        {children}
+      </DebugContext.Provider>
     </SocketContext.Provider>
   );
 }

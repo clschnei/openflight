@@ -5,7 +5,12 @@ import { ShotContext } from './shotContext';
 /** Duration to keep isNewShot true — covers the longest animation (shot-glow: 2s) */
 const NEW_SHOT_DURATION_MS = 2500;
 
-export function ShotProvider({ children }: { children: ReactNode }) {
+interface ShotProviderProps {
+  children: ReactNode;
+  onNewShot?: (shot: Shot) => void;
+}
+
+export function ShotProvider({ children, onNewShot }: ShotProviderProps) {
   const [latestShot, setLatestShot] = useState<Shot | null>(null);
   const [shots, setShotsState] = useState<Shot[]>([]);
   const [isNewShot, setIsNewShot] = useState(false);
@@ -22,9 +27,15 @@ export function ShotProvider({ children }: { children: ReactNode }) {
 
     setIsNewShot(true);
     setShotVersion((v) => v + 1);
+    
+    // Imperative callback for side-effects (like explosions)
+    if (onNewShot) {
+      onNewShot(shot);
+    }
+
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setIsNewShot(false), NEW_SHOT_DURATION_MS);
-  }, []);
+  }, [onNewShot]);
 
   const setShots = useCallback((newShots: Shot[]) => {
     setShotsState(newShots);
