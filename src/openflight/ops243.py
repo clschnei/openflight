@@ -817,18 +817,21 @@ class OPS243Radar:
         while (time.time() - start_time) < timeout:
             if self.serial.in_waiting:
                 chunk = self.serial.read(self.serial.in_waiting)
-                response_lines.append(chunk.decode('ascii', errors='ignore'))
+                decoded_chunk = chunk.decode('ascii', errors='ignore')
+                response_lines.append(decoded_chunk)
                 bytes_received += len(chunk)
                 last_data_time = time.time()
 
                 # Check if we have complete data (Q array ends the response)
-                full_response = ''.join(response_lines)
-                if '"Q"' in full_response:
-                    # Look for closing bracket of Q array followed by newline or EOF
-                    q_idx = full_response.rfind('"Q"')
-                    remaining = full_response[q_idx:]
-                    if ']}' in remaining or (remaining.rstrip().endswith(']') and remaining.count('[') == remaining.count(']')):
-                        break
+                # Only do expensive string join if we see a possible terminator
+                if ']' in decoded_chunk or '}' in decoded_chunk:
+                    full_response = ''.join(response_lines)
+                    if '"Q"' in full_response:
+                        # Look for closing bracket of Q array followed by newline or EOF
+                        q_idx = full_response.rfind('"Q"')
+                        remaining = full_response[q_idx:]
+                        if ']}' in remaining or (remaining.rstrip().endswith(']') and remaining.count('[') == remaining.count(']')):
+                            break
 
                 time.sleep(0.01)  # Short sleep to accumulate data
             else:
@@ -881,7 +884,8 @@ class OPS243Radar:
         while (time.time() - start_time) < timeout:
             if self.serial.in_waiting:
                 chunk = self.serial.read(self.serial.in_waiting)
-                response_lines.append(chunk.decode('ascii', errors='ignore'))
+                decoded_chunk = chunk.decode('ascii', errors='ignore')
+                response_lines.append(decoded_chunk)
                 bytes_received += len(chunk)
                 if last_data_time is None:
                     last_data_time = time.time()
@@ -890,15 +894,17 @@ class OPS243Radar:
                     last_data_time = time.time()
 
                 # Check if we have complete I/Q data
-                full_response = ''.join(response_lines)
-                if '"Q"' in full_response:
-                    q_idx = full_response.rfind('"Q"')
-                    remaining = full_response[q_idx:]
-                    if ']}' in remaining or (
-                        remaining.rstrip().endswith(']')
-                        and remaining.count('[') == remaining.count(']')
-                    ):
-                        break
+                # Only do expensive string join if we see a possible terminator
+                if ']' in decoded_chunk or '}' in decoded_chunk:
+                    full_response = ''.join(response_lines)
+                    if '"Q"' in full_response:
+                        q_idx = full_response.rfind('"Q"')
+                        remaining = full_response[q_idx:]
+                        if ']}' in remaining or (
+                            remaining.rstrip().endswith(']')
+                            and remaining.count('[') == remaining.count(']')
+                        ):
+                            break
 
                 time.sleep(0.01)
             else:
