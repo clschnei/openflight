@@ -16,15 +16,11 @@ import { ClubSelectScreen } from './components/ClubSelectScreen';
 import { BallDetectionIndicator } from './components/BallDetectionIndicator';
 import { DisplayMode } from './components/DisplayMode';
 import {
-  LaunchDaddyProvider,
   useLaunchDaddy,
   LaunchDaddyOverlay,
   LaunchDaddyBrand,
   LaunchDaddySecretIndicator,
 } from './components/LaunchDaddy';
-
-import { UnitPreferenceProvider } from './state/UnitPreferenceProvider';
-
 import { useUnitPreference } from './state/useUnitPreference';
 
 import Logo from './logo/Logo';
@@ -282,15 +278,7 @@ function AppContent() {
 }
 
 function App() {
-  return (
-    <LaunchDaddyProvider>
-      <UnitPreferenceProvider>
-
-          <AppContent />
-
-      </UnitPreferenceProvider>
-    </LaunchDaddyProvider>
-  );
+  return <AppContent />;
 }
 
 export default App;
