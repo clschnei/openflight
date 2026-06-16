@@ -5,8 +5,9 @@ import { useCameraStore } from '../stores/useCameraStore';
 import { useDebugStore } from '../stores/useDebugStore';
 import type { Shot, SessionStats, SessionState, TriggerDiagnostic, TriggerStatus } from '../types/shot';
 import type { DebugReading, RadarConfig, DebugShotLog } from '../types/socket';
+import { getServerOrigin } from '../utils/serverOrigin';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
+const SOCKET_URL = getServerOrigin();
 
 class SocketService {
   private socket: Socket | null = null;
