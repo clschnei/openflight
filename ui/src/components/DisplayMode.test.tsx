@@ -1,7 +1,7 @@
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { UnitPreferenceProvider } from '../state/UnitPreferenceProvider';
-import type { CameraStatus } from '../hooks/useSocket';
+import type { CameraStatus } from '../stores/useCameraStore';
 import type { Shot } from '../types/shot';
 import { DisplayMode } from './DisplayMode';
 
