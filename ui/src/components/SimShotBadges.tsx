@@ -1,4 +1,5 @@
 import './SimShotBadges.css';
+import { useSystemStore } from '../stores/useSystemStore';
 import type { SimShotInfo } from '../types/socket';
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -26,11 +27,12 @@ function formatValue(value: number | null): string {
 }
 
 interface SimShotBadgesProps {
-  latestSimShots: Record<string, SimShotInfo>;
+  latestSimShots?: Record<string, SimShotInfo>;
 }
 
-export function SimShotBadges({ latestSimShots }: SimShotBadgesProps) {
-  const sims = Object.values(latestSimShots);
+export function SimShotBadges({ latestSimShots: latestSimShotsOverride }: SimShotBadgesProps = {}) {
+  const latestSimShots = useSystemStore((state) => state.latestSimShots);
+  const sims = Object.values(latestSimShotsOverride ?? latestSimShots);
   if (sims.length === 0) {
     return null;
   }

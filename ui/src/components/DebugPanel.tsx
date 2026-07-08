@@ -1,21 +1,9 @@
 import { memo, useState } from 'react';
-import type { CameraStatus } from '../stores/useCameraStore';
-import type { DebugReading, RadarConfig, DebugShotLog } from '../types/socket';
+import { socketService } from '../services/socketService';
+import { useDebugStore } from '../stores/useDebugStore';
+import { useSystemStore } from '../stores/useSystemStore';
 import type { TriggerDiagnostic, TriggerStatus } from '../types/shot';
 import './DebugPanel.css';
-
-interface DebugPanelProps {
-  enabled: boolean;
-  readings: DebugReading[];
-  shotLogs: DebugShotLog[];
-  radarConfig: RadarConfig;
-  cameraStatus: CameraStatus;
-  mockMode: boolean;
-  onToggle: () => void;
-  onUpdateConfig: (config: Partial<RadarConfig>) => void;
-  triggerDiagnostics: TriggerDiagnostic[];
-  triggerStatus: TriggerStatus;
-}
 
 const REASON_DISPLAY: Record<string, string> = {
   accepted: 'Shot detected',
@@ -285,14 +273,12 @@ function LastTriggerCard({ diag }: { diag: TriggerDiagnostic | null }) {
 
 type DebugTab = 'status' | 'history' | 'tuning';
 
-export function DebugPanel({
-  radarConfig,
-  mockMode,
-  onUpdateConfig,
-  triggerDiagnostics,
-  triggerStatus,
-}: DebugPanelProps) {
+export function DebugPanel() {
   const [activeTab, setActiveTab] = useState<DebugTab>('status');
+  const radarConfig = useDebugStore((state) => state.radarConfig);
+  const triggerDiagnostics = useDebugStore((state) => state.triggerDiagnostics);
+  const triggerStatus = useDebugStore((state) => state.triggerStatus);
+  const mockMode = useSystemStore((state) => state.mockMode);
   const isRollingBuffer = triggerStatus.mode === 'rolling-buffer';
   const lastDiag = triggerDiagnostics.length > 0 ? triggerDiagnostics[triggerDiagnostics.length - 1] : null;
 
@@ -368,7 +354,7 @@ export function DebugPanel({
                 max={50}
                 unit=" mph"
                 disabled={mockMode}
-                onChange={(v) => onUpdateConfig({ min_speed: v })}
+                onChange={(v) => socketService.setRadarConfig({ min_speed: v })}
               />
               <SliderControl
                 label="Min Magnitude"
@@ -377,7 +363,7 @@ export function DebugPanel({
                 max={2000}
                 step={50}
                 disabled={mockMode}
-                onChange={(v) => onUpdateConfig({ min_magnitude: v })}
+                onChange={(v) => socketService.setRadarConfig({ min_magnitude: v })}
               />
               <SliderControl
                 label="TX Power"
@@ -385,7 +371,7 @@ export function DebugPanel({
                 min={0}
                 max={7}
                 disabled={mockMode}
-                onChange={(v) => onUpdateConfig({ transmit_power: v })}
+                onChange={(v) => socketService.setRadarConfig({ transmit_power: v })}
               />
             </div>
             <p className="debug-panel__hint">TX Power: 0 = max range, 7 = min range</p>

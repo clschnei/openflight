@@ -1,15 +1,12 @@
 import { useMemo, useState, memo } from 'react';
-import type { Shot } from '../types/shot';
 import { useUnitPreference } from '../state/useUnitPreference';
+import { useShotStore } from '../stores/useShotStore';
+import type { Shot } from '../types/shot';
 import type { UnitSystem } from '../utils/units';
 import { formatDistance, formatSpeed, getDistanceUnit } from '../utils/units';
 import './ShotList.css';
 
 const SHOTS_PER_PAGE = 5;
-
-interface ShotListProps {
-  shots: Shot[];
-}
 
 interface ShotRowProps {
   shot: Shot;
@@ -47,9 +44,10 @@ const ShotRow = memo(function ShotRow({ shot, shotNumber, unitSystem, distanceUn
   );
 });
 
-export function ShotList({ shots }: ShotListProps) {
+export function ShotList() {
   const [page, setPage] = useState(0);
   const { unitSystem } = useUnitPreference();
+  const shots = useShotStore((state) => state.shots);
   const distanceUnit = getDistanceUnit(unitSystem);
 
   const totalPages = Math.ceil(shots.length / SHOTS_PER_PAGE);

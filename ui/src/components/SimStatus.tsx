@@ -1,4 +1,5 @@
 import './SimStatus.css';
+import { useSystemStore } from '../stores/useSystemStore';
 import type { SimStatus as SimStatusData } from '../types/socket';
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -33,11 +34,13 @@ function pillTitle(s: SimStatusData): string {
 }
 
 interface SimStatusProps {
-  statuses: Record<string, SimStatusData>;
+  statuses?: Record<string, SimStatusData>;
 }
 
-export function SimStatus({ statuses }: SimStatusProps) {
-  const entries = Object.values(statuses);
+export function SimStatus({ statuses: statusesOverride }: SimStatusProps = {}) {
+  const statuses = useSystemStore((state) => state.simStatuses);
+  const effectiveStatuses = statusesOverride ?? statuses;
+  const entries = Object.values(effectiveStatuses);
   if (entries.length === 0) {
     return null; // No simulator connectors configured.
   }

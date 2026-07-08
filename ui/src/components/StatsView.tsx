@@ -1,18 +1,15 @@
 import { useMemo, useState } from 'react';
+import { socketService } from '../services/socketService';
 import { useUnitPreference } from '../state/useUnitPreference';
-import type { Shot } from '../types/shot';
+import { useShotStore } from '../stores/useShotStore';
 import { computeStats, getUniqueClubs } from '../types/shot';
 import { formatDistance, formatSpeed, getDistanceUnit, getSpeedUnit } from '../utils/units';
 import './StatsView.css';
 
-interface StatsViewProps {
-  shots: Shot[];
-  onClearSession: () => void;
-}
-
-export function StatsView({ shots, onClearSession }: StatsViewProps) {
+export function StatsView() {
   const [selectedClub, setSelectedClub] = useState<string | null>(null);
   const { unitSystem } = useUnitPreference();
+  const shots = useShotStore((state) => state.shots);
   const speedUnit = getSpeedUnit(unitSystem);
   const distanceUnit = getDistanceUnit(unitSystem);
 
@@ -92,7 +89,7 @@ export function StatsView({ shots, onClearSession }: StatsViewProps) {
         )}
       </div>
 
-      <button className="clear-button" onClick={onClearSession}>
+      <button className="clear-button" onClick={() => socketService.clearSession()}>
         Clear Session
       </button>
     </div>
