@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import { useSocket } from './hooks/useSocket';
+import { useClubStore } from './stores/useClubStore';
 import { useSystemStore } from './stores/useSystemStore';
 import { useShotStore } from './stores/useShotStore';
 import { useCameraStore } from './stores/useCameraStore';
-import { useDebugStore } from './stores/useDebugStore';
 import { socketService } from './services/socketService';
 import { ShotDisplay } from './components/ShotDisplay';
 import { StatsView } from './components/StatsView';
@@ -66,50 +65,16 @@ const Icons = {
 
 function AppContent() {
   const { shutdown } = useSocket();
-  const { connected, mockMode, debugMode, simStatuses, latestSimShots, serverClub } = useSystemStore(
-    useShallow((state) => ({
-      connected: state.connected,
-      mockMode: state.mockMode,
-      debugMode: state.debugMode,
-      simStatuses: state.simStatuses,
-      latestSimShots: state.latestSimShots,
-      serverClub: state.serverClub,
-    })),
-  );
-  const { latestShot, shots, isNewShot, shotVersion } = useShotStore(
-    useShallow((state) => ({
-      latestShot: state.latestShot,
-      shots: state.shots,
-      isNewShot: state.isNewShot,
-      shotVersion: state.shotVersion,
-    })),
-  );
+  const connected = useSystemStore((state) => state.connected);
+  const mockMode = useSystemStore((state) => state.mockMode);
+  const debugMode = useSystemStore((state) => state.debugMode);
+  const shotVersion = useShotStore((state) => state.shotVersion);
+  const isNewShot = useShotStore((state) => state.isNewShot);
+  const shotsCount = useShotStore((state) => state.shots.length);
   const cameraStatus = useCameraStore((state) => state.cameraStatus);
-  const { debugReadings, debugShotLogs, radarConfig, triggerDiagnostics, triggerStatus } = useDebugStore(
-    useShallow((state) => ({
-      debugReadings: state.debugReadings,
-      debugShotLogs: state.debugShotLogs,
-      radarConfig: state.radarConfig,
-      triggerDiagnostics: state.triggerDiagnostics,
-      triggerStatus: state.triggerStatus,
-    })),
-  );
+  const showClubSelect = useClubStore((state) => state.showClubSelect);
 
   const [currentView, setCurrentView] = useState<View>('live');
-  const [selectedClub, setSelectedClub] = useState('driver');
-  // Reflect a server-pushed club change (e.g. the club changed in the connected
-  // simulator) in the local picker, without echoing back to the server. Done
-  // during render (React's "adjust state when an input changes" pattern) rather
-  // than in an effect, which avoids a cascading-render lint error.
-  const [appliedServerClub, setAppliedServerClub] = useState<string | null>(null);
-  if (serverClub && serverClub !== appliedServerClub) {
-    setAppliedServerClub(serverClub);
-    setSelectedClub(serverClub);
-  }
-  // Shown on every app load so the user confirms their club before the first
-  // shot (skippable, keeps the default). The /display route returns early
-  // below, so this interstitial never appears in the passive TV view.
-  const [showClubSelect, setShowClubSelect] = useState(true);
   const [showShutdown, setShowShutdown] = useState(false);
   const { isLaunchDaddyMode, isExploding, triggerExplosion, handleSecretTap } = useLaunchDaddy();
   const { unitSystem, setUnitSystem } = useUnitPreference();
@@ -124,33 +89,14 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- shotVersion triggers the effect; isNewShot is only a guard
   }, [shotVersion, isLaunchDaddyMode, triggerExplosion]);
 
-  const handleClubChange = (club: string) => {
-    setSelectedClub(club);
-    socketService.setClub(club);
-  };
-
   if (isDisplayRoute) {
-    return (
-      <DisplayMode
-        connected={connected}
-        cameraStatus={cameraStatus}
-        latestShot={latestShot}
-        shots={shots}
-      />
-    );
+    return <DisplayMode />;
   }
 
   return (
     <div className={`app ${isLaunchDaddyMode ? 'app--launch-daddy' : ''} ${isExploding ? 'app--exploding' : ''}`}>
       {showClubSelect && (
-        <ClubSelectScreen
-          selectedClub={selectedClub}
-          onSelect={(club) => {
-            handleClubChange(club);
-            setShowClubSelect(false);
-          }}
-          onSkip={() => setShowClubSelect(false)}
-        />
+        <ClubSelectScreen />
       )}
 
       {/* Launch Daddy Overlay */}
@@ -196,15 +142,9 @@ function AppContent() {
               KMH/M
             </button>
           </div>
-          <ClubPicker selectedClub={selectedClub} onClubChange={handleClubChange} />
-          <BallDetectionIndicator
-            available={cameraStatus.available}
-            enabled={cameraStatus.enabled}
-            detected={cameraStatus.ball_detected}
-            confidence={cameraStatus.ball_confidence}
-            onToggle={() => socketService.toggleCamera()}
-          />
-          <SimStatus statuses={simStatuses} />
+          <ClubPicker />
+          <BallDetectionIndicator />
+          <SimStatus />
           <ConnectionStatus connected={connected} />
           <button
             className="power-button"
@@ -256,7 +196,7 @@ function AppContent() {
         >
           {Icons.shots}
           <span>Shots</span>
-          {shots.length > 0 && <span className="nav__badge">{shots.length}</span>}
+          {shotsCount > 0 && <span className="nav__badge">{shotsCount}</span>}
         </button>
         <button
           className={`nav__button ${currentView === 'camera' ? 'nav__button--active' : ''} ${cameraStatus.streaming ? 'nav__button--streaming' : ''}`}
@@ -280,8 +220,8 @@ function AppContent() {
         {currentView === 'live' && (
           <div className="live-view">
             {isNewShot && <div key={shotVersion} className="shot-flash" />}
-            <ShotDisplay key={shotVersion} shot={latestShot} animate={isNewShot} />
-            {debugMode && <SimShotBadges latestSimShots={latestSimShots} />}
+            <ShotDisplay key={shotVersion} />
+            {debugMode && <SimShotBadges />}
             {mockMode && (
               <button className="simulate-button" onClick={() => socketService.simulateShot()}>
                 Simulate Shot
@@ -289,25 +229,10 @@ function AppContent() {
             )}
           </div>
         )}
-        {currentView === 'stats' && <StatsView shots={shots} onClearSession={() => socketService.clearSession()} />}
-        {currentView === 'shots' && <ShotList shots={shots} />}
-        {currentView === 'camera' && (
-          <CameraFeed cameraStatus={cameraStatus} onToggleCamera={() => socketService.toggleCamera()} onToggleStream={() => socketService.toggleCameraStream()} />
-        )}
-        {currentView === 'debug' && (
-          <DebugPanel
-            enabled={debugMode}
-            readings={debugReadings}
-            shotLogs={debugShotLogs}
-            radarConfig={radarConfig}
-            cameraStatus={cameraStatus}
-            mockMode={mockMode}
-            onToggle={() => socketService.toggleDebug()}
-            onUpdateConfig={(config) => socketService.setRadarConfig(config)}
-            triggerDiagnostics={triggerDiagnostics}
-            triggerStatus={triggerStatus}
-          />
-        )}
+        {currentView === 'stats' && <StatsView />}
+        {currentView === 'shots' && <ShotList />}
+        {currentView === 'camera' && <CameraFeed />}
+        {currentView === 'debug' && <DebugPanel />}
       </main>
     </div>
   );

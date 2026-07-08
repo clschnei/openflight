@@ -1,20 +1,12 @@
+import { socketService } from '../services/socketService';
+import { useCameraStore } from '../stores/useCameraStore';
 import './BallDetectionIndicator.css';
 
-interface BallDetectionIndicatorProps {
-  available: boolean;
-  enabled: boolean;
-  detected: boolean;
-  confidence: number;
-  onToggle: () => void;
-}
+export function BallDetectionIndicator() {
+  const { available, enabled, ball_detected: detected, ball_confidence: confidence } = useCameraStore(
+    (state) => state.cameraStatus,
+  );
 
-export function BallDetectionIndicator({
-  available,
-  enabled,
-  detected,
-  confidence,
-  onToggle,
-}: BallDetectionIndicatorProps) {
   if (!available) {
     return null;
   }
@@ -34,7 +26,7 @@ export function BallDetectionIndicator({
   return (
     <button
       className={`ball-indicator ${getStatusClass()}`}
-      onClick={onToggle}
+      onClick={() => socketService.toggleCamera()}
       title={enabled ? 'Click to disable camera' : 'Click to enable camera'}
     >
       <span className="ball-indicator__icon">{detected ? '⚪' : '◯'}</span>

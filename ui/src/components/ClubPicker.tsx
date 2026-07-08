@@ -1,19 +1,16 @@
 import { useState } from 'react';
 import { ALL_CLUBS, CLUBS_BY_TYPE } from '../data/clubs';
+import { useClubSelection } from '../hooks/useClubSelection';
 import './ClubPicker.css';
 
-interface ClubPickerProps {
-  selectedClub: string;
-  onClubChange: (club: string) => void;
-}
-
-export function ClubPicker({ selectedClub, onClubChange }: ClubPickerProps) {
+export function ClubPicker() {
   const [isOpen, setIsOpen] = useState(false);
+  const { selectedClub, updateClub } = useClubSelection();
 
   const selectedLabel = ALL_CLUBS.find((c) => c.id === selectedClub)?.label || 'DR';
 
   const handleSelect = (clubId: string) => {
-    onClubChange(clubId);
+    updateClub(clubId);
     setIsOpen(false);
   };
 

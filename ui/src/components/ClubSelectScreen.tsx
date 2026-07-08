@@ -1,13 +1,9 @@
 import { CLUBS_BY_TYPE } from '../data/clubs';
+import { useClubSelection } from '../hooks/useClubSelection';
 import './ClubSelectScreen.css';
 
 interface ClubSelectScreenProps {
-  /** Currently selected club id; pre-highlighted on the grid. */
-  selectedClub: string;
-  /** Called with the chosen club id when the user picks a club. */
-  onSelect: (club: string) => void;
-  /** Called when the user dismisses (X) without changing the current club. */
-  onSkip: () => void;
+  selectedClub?: string;
 }
 
 /**
@@ -15,11 +11,14 @@ interface ClubSelectScreenProps {
  * they're hitting before the first shot. Dismissible via the X in the corner,
  * which keeps the current (default) club.
  */
-export function ClubSelectScreen({ selectedClub, onSelect, onSkip }: ClubSelectScreenProps) {
+export function ClubSelectScreen({ selectedClub: selectedClubOverride }: ClubSelectScreenProps) {
+  const { selectedClub, updateClub, dismissClubSelect } = useClubSelection();
+  const activeClub = selectedClubOverride ?? selectedClub;
+
   return (
     <div className="club-select" role="dialog" aria-modal="true" aria-label="Select your club">
       <div className="club-select__panel">
-        <button className="club-select__close" onClick={onSkip} aria-label="Close club selection">
+        <button className="club-select__close" onClick={dismissClubSelect} aria-label="Close club selection">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -42,8 +41,11 @@ export function ClubSelectScreen({ selectedClub, onSelect, onSkip }: ClubSelectS
               {clubs.map((club) => (
                 <button
                   key={club.id}
-                  className={`club-select__option ${selectedClub === club.id ? 'club-select__option--selected' : ''}`}
-                  onClick={() => onSelect(club.id)}
+                  className={`club-select__option ${activeClub === club.id ? 'club-select__option--selected' : ''}`}
+                  onClick={() => {
+                    updateClub(club.id);
+                    dismissClubSelect();
+                  }}
                 >
                   {club.label}
                 </button>

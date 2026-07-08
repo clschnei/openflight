@@ -1,19 +1,15 @@
 import { useState } from 'react';
-import type { CameraStatus } from '../stores/useCameraStore';
+import { socketService } from '../services/socketService';
+import { useCameraStore } from '../stores/useCameraStore';
 import { getServerOrigin } from '../utils/serverOrigin';
 import './CameraFeed.css';
 
-interface CameraFeedProps {
-  cameraStatus: CameraStatus;
-  onToggleCamera: () => void;
-  onToggleStream: () => void;
-}
-
 const STREAM_URL = `${getServerOrigin()}/camera/stream`;
 
-export function CameraFeed({ cameraStatus, onToggleCamera, onToggleStream }: CameraFeedProps) {
+export function CameraFeed() {
   const [streamError, setStreamError] = useState(false);
   const [prevStreaming, setPrevStreaming] = useState(false);
+  const cameraStatus = useCameraStore((state) => state.cameraStatus);
   const { available, enabled, streaming, ball_detected, ball_confidence } = cameraStatus;
 
   // Reset error when streaming starts
@@ -43,15 +39,15 @@ export function CameraFeed({ cameraStatus, onToggleCamera, onToggleStream }: Cam
         <div className="camera-feed__controls">
           <button
             className={`camera-feed__button ${enabled ? 'camera-feed__button--active' : ''}`}
-            onClick={onToggleCamera}
+            onClick={() => socketService.toggleCamera()}
           >
             {enabled ? 'Disable Camera' : 'Enable Camera'}
           </button>
           {enabled && (
-            <button
-              className={`camera-feed__button ${streaming ? 'camera-feed__button--streaming' : ''}`}
-              onClick={onToggleStream}
-            >
+              <button
+                className={`camera-feed__button ${streaming ? 'camera-feed__button--streaming' : ''}`}
+                onClick={() => socketService.toggleCameraStream()}
+              >
               {streaming ? 'Stop Stream' : 'Start Stream'}
             </button>
           )}
